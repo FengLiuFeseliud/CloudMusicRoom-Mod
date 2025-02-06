@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "cloudmusicroom",
+  "version": "${version}",
+  "name": "CloudMusicRoom",
+  "description": "Use Netease Cloud Music in MC Server !!!",
+  "authors": [
+    "FengLiuFeseliud"
+  ],
+
+  "contact": {
+    "homepage": "https://github.com/FengLiuFeseliud/CloudMusic-Mod",
+    "sources": "https://github.com/FengLiuFeseliud/CloudMusic-Mod",
+    "issues": "https://github.com/FengLiuFeseliud/CloudMusic-Mod/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/cloudmusicroom/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "fengliu.cloudmusicroom.client.CloudMusicRoomClient"
+    ],
+    "main": [
+      "fengliu.cloudmusicroom.CloudMusicRoom"
+    ],
+    "modmenu": [
+      "fengliu.cloudmusicroom.client.compat.ModMenu"
+    ]
+  },
+  "mixins": [
+    "cloudmusicroom.mixins.json",
+    {
+      "config": "cloudmusicroom.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
