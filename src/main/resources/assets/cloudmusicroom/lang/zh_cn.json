@@ -1,0 +1,22 @@
+{
+  "cloudmusicroom.gui.configs.title": "CloudMusicRoom 云歌曲房间 By FengLiuFeseliud",
+  "cloudmusicroom.info.show.room.list": "云歌曲房间列表",
+  "cloudmusicroom.info.not.music.room": "没有云歌曲房间呢...",
+  "cloudmusicroom.info.room.unoccupied": " - 空闲",
+  "cloudmusicroom.info.play.join.room": "%s 进入当前 %s 房间~",
+  "cloudmusicroom.info.join.room": "进入 %s 房间!",
+  "cloudmusicroom.info.play.exit.room": "%s 退出当前 %s 房间~",
+  "cloudmusicroom.info.exit.room": "退出 %s 房间~",
+  "cloudmusicroom.info.join.room.not.playing": "当前 %s 房间空闲着呢...",
+  "cloudmusicroom.info.join.room.playing": "%s 房间正在播放 %s, 一起听吧!",
+  "cloudmusicroom.info.room.add.music": "%s 点歌 %s",
+  "cloudmusicroom.info.room.play.unoccupied": "房间播放空闲了...",
+  "cloudmusicroom.option.add.music": "[点歌]",
+  "cloudmusicroom.option.add.music.show": "向所在房间点歌",
+  "cloudmusicroom.error.sql.run.error": "",
+  "cloudmusicroom.info.sql.not.table.": "",
+  "cloudmusicroom.error.sql.exist.table.": "",
+  "cloudmusicroom.error.not.join.room.add.music": "你还没进入房间怎么能点歌?",
+  "cloudmusic.config.join.room.exit.player": "加入房间后退出播放 | join.room.exit.player",
+  "cloudmusic.config.join.room.exit.player.comment": "加入房间后房间空闲一样自动退出当前播放"
+}

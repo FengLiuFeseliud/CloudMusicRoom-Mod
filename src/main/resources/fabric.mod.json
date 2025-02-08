@@ -9,9 +9,9 @@
   ],
 
   "contact": {
-    "homepage": "https://github.com/FengLiuFeseliud/CloudMusic-Mod",
-    "sources": "https://github.com/FengLiuFeseliud/CloudMusic-Mod",
-    "issues": "https://github.com/FengLiuFeseliud/CloudMusic-Mod/issues"
+    "homepage": "https://github.com/FengLiuFeseliud/CloudMusicRoom-Mod",
+    "sources": "https://github.com/FengLiuFeseliud/CloudMusicRoom-Mod",
+    "issues": "https://github.com/FengLiuFeseliud/CloudMusicRoom-Mod/issues"
   },
   "license": "MIT",
   "icon": "assets/cloudmusicroom/icon.png",

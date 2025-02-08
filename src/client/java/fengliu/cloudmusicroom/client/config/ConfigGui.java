@@ -22,6 +22,8 @@ public class ConfigGui extends GuiConfigsBase {
 
         if (tab == ConfigGui.ConfigGuiTab.ALL) {
             configs = Configs.ALL.OPTIONS;
+        } else if (tab == ConfigGuiTab.PLAY) {
+            configs = Configs.PLAY.OPTIONS;
         } else {
             return Collections.emptyList();
         }
@@ -83,7 +85,8 @@ public class ConfigGui extends GuiConfigsBase {
     }
 
     public enum ConfigGuiTab {
-        ALL(IdUtil.getConfigTag("all"));
+        ALL(IdUtil.getConfigTag("all")),
+        PLAY(IdUtil.getConfigTag("play"));
 
         private final String translationKey;
 

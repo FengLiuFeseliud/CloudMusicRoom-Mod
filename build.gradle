@@ -37,6 +37,10 @@ dependencies {
     modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
     // 在项目下 lib 目录放入对应 cloudmusic
     modImplementation fileTree(dir: "lib", includes: ["cloudmusic-mod-${project.minecraft_version}-${project.cloudmusic_version}.jar"])
+
+    // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.48.0.0'
+    include group: 'org.xerial', name: 'sqlite-jdbc', version: '3.48.0.0'
 }
 
 processResources {

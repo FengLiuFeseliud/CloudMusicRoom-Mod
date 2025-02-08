@@ -3,10 +3,12 @@ package fengliu.cloudmusicroom.client.config;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import fengliu.cloudmusic.util.ConfigUtil;
 import fengliu.cloudmusicroom.CloudMusicRoom;
 import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
+import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
 
@@ -17,8 +19,18 @@ public class Configs implements IConfigHandler {
     private static final String CONFIG_FILE_NAME = CloudMusicRoom.MOD_ID + ".json";
 
     public static class ALL {
-        public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
+        public static final ConfigBoolean JOIN_ROOM_EXIT_PLAYER = ConfigUtil.addConfigBoolean("join.room.exit.player");
 
+        public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
+                JOIN_ROOM_EXIT_PLAYER
+        );
+    }
+
+    public static class PLAY {
+        public static final ConfigBoolean JOIN_ROOM_EXIT_PLAYER = ALL.JOIN_ROOM_EXIT_PLAYER;
+
+        public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
+                JOIN_ROOM_EXIT_PLAYER
         );
     }
 

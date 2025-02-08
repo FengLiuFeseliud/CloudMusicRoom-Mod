@@ -1,11 +1,16 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "fengliu.cloudmusicroom.cloudmusicroom.mixin.client",
+  "package": "fengliu.cloudmusicroom.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "MusicCommandMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "MusicMixin",
+    "MusicPlayerMixin"
+  ]
 }
