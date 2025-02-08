@@ -29,7 +29,7 @@ public class MusicRoomClient {
     private static NbtCompound roomInfo = null;
 
     /**
-     * 防止非房间播放队列发送更新包
+     * 防止播放时加入房间时发送更新包
      */
     public static boolean inJoinRoomOldPlayer = false;
     public static boolean inUpdateMusic = false;
@@ -50,6 +50,8 @@ public class MusicRoomClient {
         }
         MusicRoomClient.inMusicRoom = false;
         MusicRoomClient.roomInfo = null;
+        MusicRoomClient.inJoinRoomOldPlayer = false;
+        MusicRoomClient.inUpdateMusic = false;
     }
 
     /**
@@ -57,22 +59,24 @@ public class MusicRoomClient {
      */
     public static void joinRoom(JoinRoomPayload payload, ClientPlayNetworking.Context context){
         MusicRoomClient.inMusicRoom = true;
+        MusicRoomClient.inUpdateMusic = true;
         MusicRoomClient.roomInfo = payload.roomInfoNbt();
         context.player().sendMessage(Text.translatable(IdUtil.info("join.room"), payload.getRoomName()), false);
+
+        if (MusicCommand.getPlayer().isPlaying()){
+            MusicRoomClient.inJoinRoomOldPlayer = true;
+        }
 
         MusicInfo musicInfo = payload.getPlayingMusicInfo();
         if (musicInfo == null){
             context.player().sendMessage(Text.translatable(IdUtil.info("join.room.not.playing"), payload.getRoomName()), false);
             if (!Configs.PLAY.JOIN_ROOM_EXIT_PLAYER.getBooleanValue()){
-                MusicRoomClient.inJoinRoomOldPlayer = true;
                 return;
             }
             MusicCommandMixin.resetPlayer(new ArrayList<>());
             return;
         }
 
-        inUpdateMusic = true;
-        MusicRoomClient.inJoinRoomOldPlayer = false;
         IMusic playingMusic = MusicCommandMixin.getMusic163().music(musicInfo.musicId());
         context.player().sendMessage(Text.translatable(IdUtil.info("join.room.playing"), payload.getRoomName(), playingMusic.getName()), false);
         MusicCommandMixin.resetPlayer(playingMusic);
