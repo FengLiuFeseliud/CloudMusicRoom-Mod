@@ -30,6 +30,7 @@ public class MusicRoom implements IMusicRoom{
     private final List<ServerPlayerEntity> joinUserList = new ArrayList<>();
     private MusicQueue musicQueue = new MusicQueue();
     private long playMusicPlaylistId = 0;
+    private long clientPlayEndCount = 0;
 
     public final MinecraftServer server;
     public final SqlConnection connection = new SqlConnection() {
@@ -142,6 +143,23 @@ public class MusicRoom implements IMusicRoom{
         }
 
         joinUserList.forEach(player -> player.sendMessage(Text.translatable(IdUtil.info("room.add.music"), addMusicPlayer.getName(), musicInfo.musicName())));
+    }
+
+    @Override
+    public boolean isAllClientPlayEnd(){
+        this.clientPlayEndCount ++;
+
+        if (this.clientPlayEndCount != this.joinUserList.size()){
+            return false;
+        }
+
+        this.clientPlayEndCount = 0;
+        return true;
+    }
+
+    @Override
+    public boolean inJoinRoom(ServerPlayerEntity player) {
+        return this.joinUserList.contains(player);
     }
 
     public NbtCompound toNbtCompound(){

@@ -9,5 +9,6 @@ public class ModS2CPackets {
         ClientPlayNetworking.registerGlobalReceiver(ModS2CPacketsId.JOIN_ROOM, MusicRoomClient::joinRoom);
         ClientPlayNetworking.registerGlobalReceiver(ModS2CPacketsId.ROOM_PLAY_MUSIC, MusicRoomClient::RoomPlayMusic);
         ClientPlayNetworking.registerGlobalReceiver(ModS2CPacketsId.ROOM_LIST, MusicRoomClient::RoomList);
+        ClientPlayNetworking.registerGlobalReceiver(ModS2CPacketsId.ROOM_PLAYING_LIST, MusicRoomClient::roomPlayingList);
     }
 }

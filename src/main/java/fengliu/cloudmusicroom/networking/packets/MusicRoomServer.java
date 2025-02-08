@@ -18,7 +18,7 @@ public class MusicRoomServer {
      */
     public static void roomMusicPlayEnd(RoomMusicPlayEndPayload payload, ServerPlayNetworking.Context context) {
         MusicRoomCommand.musicRoomList.forEach(musicRoom -> {
-            if (musicRoom.getId() != payload.roomId()){
+            if (musicRoom.getId() != payload.roomId() || musicRoom.isAllClientPlayEnd()){
                 return;
             }
 
@@ -35,7 +35,7 @@ public class MusicRoomServer {
                 return;
             }
 
-            musicRoom.addMusic(MusicInfo.fromNbtCompound(payload.musicInfo()), context.player());
+            musicRoom.addMusic(MusicInfo.fromNbtCompound(payload.musicInfo(), context.player()), context.player());
         });
     }
 

@@ -47,4 +47,17 @@ public interface IMusicRoom {
      * 点歌
      */
     void addMusic(MusicInfo musicInfo, ServerPlayerEntity player);
+
+    /**
+     * 判断所有用户是否都播放完毕
+     * @return true 用户都播放完毕
+     */
+    boolean isAllClientPlayEnd();
+
+    /**
+     * 判断用户是否在房间
+     * @param player 玩家
+     * @return true 玩家在房间
+     */
+    boolean inJoinRoom(ServerPlayerEntity player);
 }

@@ -4,8 +4,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import fengliu.cloudmusic.command.MusicCommand;
-import fengliu.cloudmusic.music163.IMusic;
 import fengliu.cloudmusic.music163.data.Music;
 import fengliu.cloudmusicroom.CloudMusicRoom;
 import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
@@ -54,6 +52,7 @@ public class MusicRoomClientCommand {
                                         music.getId(),
                                         "%s - %s".formatted(music.getName(), Music.getArtistsName(music.artists)),
                                         MinecraftClient.getInstance().player.getUuid(),
+                                        "",
                                         System.currentTimeMillis()
                                 )).toNbtCompound()));
                     });

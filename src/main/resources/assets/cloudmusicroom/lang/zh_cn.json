@@ -1,6 +1,7 @@
 {
   "cloudmusicroom.gui.configs.title": "CloudMusicRoom 云歌曲房间 By FengLiuFeseliud",
   "cloudmusicroom.info.show.room.list": "云歌曲房间列表",
+  "cloudmusicroom.info.show.room.playing.list": "%s 房间点歌列表",
   "cloudmusicroom.info.not.music.room": "没有云歌曲房间呢...",
   "cloudmusicroom.info.room.unoccupied": " - 空闲",
   "cloudmusicroom.info.play.join.room": "%s 进入当前 %s 房间~",
@@ -11,6 +12,8 @@
   "cloudmusicroom.info.join.room.playing": "%s 房间正在播放 %s, 一起听吧!",
   "cloudmusicroom.info.room.add.music": "%s 点歌 %s",
   "cloudmusicroom.info.room.play.unoccupied": "房间播放空闲了...",
+  "cloudmusicroom.info.add.music.player.name": "点歌人：%s",
+  "cloudmusicroom.info.add.music.time": "点歌时间：%s",
   "cloudmusicroom.option.add.music": "[点歌]",
   "cloudmusicroom.option.add.music.show": "向所在房间点歌",
   "cloudmusicroom.error.sql.run.error": "",

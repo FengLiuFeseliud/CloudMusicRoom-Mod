@@ -1,22 +1,17 @@
 package fengliu.cloudmusicroom.command;
 
 import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import fengliu.cloudmusic.command.MusicCommand;
-import fengliu.cloudmusic.util.TextClickItem;
-import fengliu.cloudmusic.util.page.Page;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomListPayload;
+import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayingListPayload;
 import fengliu.cloudmusicroom.room.IMusicRoom;
 import fengliu.cloudmusicroom.room.MusicRoom;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +38,7 @@ public class MusicRoomCommand {
         LiteralArgumentBuilder<ServerCommandSource> Create = literal("create");
         LiteralArgumentBuilder<ServerCommandSource> List = literal("list");
         LiteralArgumentBuilder<ServerCommandSource> Join = literal("join");
+        LiteralArgumentBuilder<ServerCommandSource> Queue = literal("queue");
 
         CloudMusicRoom.then(Create.then(argument("name",
                 StringArgumentType.string()).executes(context -> {
@@ -66,6 +62,16 @@ public class MusicRoomCommand {
                     iMusicRoom -> iMusicRoom.join(context.getSource().getPlayer()));
             return Command.SINGLE_SUCCESS;
         })));
+
+        CloudMusicRoom.then(Queue.executes(commandContext -> {
+            musicRoomList.forEach(iMusicRoom -> {
+                if (!iMusicRoom.inJoinRoom(commandContext.getSource().getPlayer())){
+                    return;
+                }
+                ServerPlayNetworking.send(commandContext.getSource().getPlayer(), new RoomPlayingListPayload(iMusicRoom.getQueue().toNbtList()));
+            });
+            return Command.SINGLE_SUCCESS;
+        }));
 
         CommandRegistrationCallback.EVENT.register(((commandDispatcher, commandRegistryAccess, registrationEnvironment) -> {
             commandDispatcher.register(CloudMusicRoom);

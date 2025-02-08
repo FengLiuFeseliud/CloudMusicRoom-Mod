@@ -9,6 +9,7 @@ import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
 import fengliu.cloudmusicroom.networking.packets.payload.JoinRoomPayload;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomListPayload;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayMusicPayload;
+import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayingListPayload;
 import fengliu.cloudmusicroom.networking.packets.payload.client.RoomExitPayload;
 import fengliu.cloudmusicroom.room.MusicInfo;
 import fengliu.cloudmusicroom.room.MusicRoom;
@@ -19,7 +20,9 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.text.Text;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * S2C 客户端处理
@@ -99,7 +102,6 @@ public class MusicRoomClient {
         MusicCommand.getPlayer().start();
     }
 
-
     /**
      * 显示房间列表
      */
@@ -115,7 +117,7 @@ public class MusicRoomClient {
             protected TextClickItem putPageItem(Object item) {
                 NbtCompound musicRoomInfoNbt = (NbtCompound) item;
                 String roomName = musicRoomInfoNbt.getString(MusicRoom.ROOM_NAME_KEY);
-                return new TextClickItem(Text.literal("§b%s - %s§r§7%s - id: %s".formatted(
+                return new TextClickItem(Text.literal("§b%s - %s§r§7%s - id：%s".formatted(
                         roomName,
                         musicRoomInfoNbt.getString(MusicRoom.ROOM_OWNER_NAME_KEY),
                         MusicInfo.fromNbtCompound(musicRoomInfoNbt.getCompound(MusicRoom.ROOM_PLAYING_MUSIC_KEY)) == null ? Text.translatable(IdUtil.info("room.unoccupied")).getString(): "",
@@ -125,6 +127,33 @@ public class MusicRoomClient {
         };
 
         page.setInfoText(Text.translatable(IdUtil.info("show.room.list")));
+        MusicCommand.setPage(page);
+        page.look();
+    }
+
+    /**
+     * 显示房间点歌列表
+     */
+    public static void roomPlayingList(RoomPlayingListPayload payload, ClientPlayNetworking.Context context) {
+        NbtList nbtList = (NbtList) payload.roomPlayingList();
+        if (nbtList.isEmpty()){
+            context.player().sendMessage(Text.translatable(IdUtil.info("room.play.unoccupied")), false);
+            return;
+        }
+
+        Page page = new Page(nbtList) {
+            @Override
+            protected TextClickItem putPageItem(Object item) {
+                MusicInfo musicInfo = MusicInfo.fromNbtCompound((NbtCompound) item);
+                return new TextClickItem(Text.literal("§b%s§r§7- %s - %s".formatted(
+                        musicInfo.musicName(),
+                        Text.translatable(IdUtil.info("add.music.player.name"), musicInfo.addMusicPlayerName()).getString(),
+                        Text.translatable(IdUtil.info("add.music.time"), new SimpleDateFormat("HH:mm").format(new Date(musicInfo.addMusicTime()))).getString())),
+                        "/cloudmusic music %s".formatted(musicInfo.musicId()));
+            }
+        };
+
+        page.setInfoText(Text.translatable(IdUtil.info("show.room.playing.list"), MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY)));
         MusicCommand.setPage(page);
         page.look();
     }

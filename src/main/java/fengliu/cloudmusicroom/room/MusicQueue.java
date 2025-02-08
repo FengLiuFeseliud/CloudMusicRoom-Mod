@@ -1,5 +1,7 @@
 package fengliu.cloudmusicroom.room;
 
+import net.minecraft.nbt.NbtList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,5 +37,16 @@ public class MusicQueue {
 
         this.playingMusicInfo = musicList.getFirst();
         this.musicList.removeFirst();
+    }
+
+    public NbtList toNbtList(){
+        NbtList playingList = new NbtList();
+        if (this.isUnoccupied()){
+            return playingList;
+        }
+
+        playingList.add(this.playingMusicInfo.toNbtCompound());
+        musicList.forEach(musicInfo -> playingList.add(musicInfo.toNbtCompound()));
+        return playingList;
     }
 }
