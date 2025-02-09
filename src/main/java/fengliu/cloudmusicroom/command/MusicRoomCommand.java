@@ -1,6 +1,7 @@
 package fengliu.cloudmusicroom.command;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomListPayload;
@@ -23,9 +24,9 @@ import static net.minecraft.server.command.CommandManager.literal;
 public class MusicRoomCommand {
     public static final List<IMusicRoom> musicRoomList = new ArrayList<>();
 
-    private static void runRoom(String roomName, PlayerEntity player, Consumer<IMusicRoom> run){
+    private static void runRoom(long roomId, PlayerEntity player, Consumer<IMusicRoom> run){
         musicRoomList.forEach(iMusicRoom -> {
-            if (!iMusicRoom.getName().equals(roomName)){
+            if (iMusicRoom.getId() != roomId){
                 return;
             }
 
@@ -40,6 +41,7 @@ public class MusicRoomCommand {
         LiteralArgumentBuilder<ServerCommandSource> Join = literal("join");
         LiteralArgumentBuilder<ServerCommandSource> Queue = literal("queue");
         LiteralArgumentBuilder<ServerCommandSource> Switch = literal("switch");
+        LiteralArgumentBuilder<ServerCommandSource> Delete = literal("delete");
 
         CloudMusicRoom.then(Create.then(argument("name",
                 StringArgumentType.string()).executes(context -> {
@@ -54,12 +56,12 @@ public class MusicRoomCommand {
             return Command.SINGLE_SUCCESS;
         }));
 
-        CloudMusicRoom.then(Join.then(argument("name", StringArgumentType.string()).executes(context -> {
+        CloudMusicRoom.then(Join.then(argument("roomId", LongArgumentType.longArg()).executes(context -> {
             if(context.getSource().getWorld().isClient()){
                 return Command.SINGLE_SUCCESS;
             }
 
-            runRoom(StringArgumentType.getString(context, "name"), context.getSource().getPlayer(),
+            runRoom(LongArgumentType.getLong(context, "roomId"), context.getSource().getPlayer(),
                     iMusicRoom -> iMusicRoom.join(context.getSource().getPlayer()));
             return Command.SINGLE_SUCCESS;
         })));
@@ -74,16 +76,22 @@ public class MusicRoomCommand {
             return Command.SINGLE_SUCCESS;
         }));
 
-        CommandRegistrationCallback.EVENT.register(((commandDispatcher, commandRegistryAccess, registrationEnvironment) -> {
-            commandDispatcher.register(CloudMusicRoom.then(Switch.executes(commandContext -> {
-                musicRoomList.forEach(iMusicRoom -> {
-                    if (!iMusicRoom.inJoinRoom(commandContext.getSource().getPlayer())){
-                        return;
-                    }
-                    iMusicRoom.switchMusic(commandContext.getSource().getPlayer());
-                });
-                return Command.SINGLE_SUCCESS;
-            })));
+        CloudMusicRoom.then(Switch.executes(commandContext -> {
+               musicRoomList.forEach(iMusicRoom -> {
+                   if (!iMusicRoom.inJoinRoom(commandContext.getSource().getPlayer())) {
+                       return;
+                   }
+                   iMusicRoom.switchMusic(commandContext.getSource().getPlayer());
+               });
+               return Command.SINGLE_SUCCESS;
         }));
+
+        CloudMusicRoom.then(Delete.then(
+                argument("roomId", LongArgumentType.longArg()).executes(commandContext -> {
+                    runRoom(LongArgumentType.getLong(commandContext, "roomId"), commandContext.getSource().getPlayer(), iMusicRoom -> iMusicRoom.delete(commandContext.getSource().getPlayer()));
+                    return Command.SINGLE_SUCCESS;
+        })));
+
+        CommandRegistrationCallback.EVENT.register(((dispatcher, access, environment) -> dispatcher.register(CloudMusicRoom)));
     }
 }

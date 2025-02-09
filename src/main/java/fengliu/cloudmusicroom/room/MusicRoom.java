@@ -1,7 +1,9 @@
 package fengliu.cloudmusicroom.room;
 
 import fengliu.cloudmusicroom.CloudMusicRoom;
+import fengliu.cloudmusicroom.command.MusicRoomCommand;
 import fengliu.cloudmusicroom.networking.packets.payload.JoinRoomPayload;
+import fengliu.cloudmusicroom.networking.packets.payload.RoomDeletePayload;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayMusicPayload;
 import fengliu.cloudmusicroom.sql.SqlConnection;
 import fengliu.cloudmusicroom.utils.IdUtil;
@@ -28,6 +30,7 @@ public class MusicRoom implements IMusicRoom{
     private final String name;
     private final PlayerEntity owner;
     private final List<ServerPlayerEntity> joinUserList = new ArrayList<>();
+    private final List<ServerPlayerEntity> newJoinUserList = new ArrayList<>();
     private MusicQueue musicQueue = new MusicQueue();
     private long playMusicPlaylistId = 0;
     private long clientPlayEndCount = 0;
@@ -93,21 +96,41 @@ public class MusicRoom implements IMusicRoom{
     }
 
     @Override
-    public void delete() {
+    public void delete(ServerPlayerEntity player) {
+        if (!this.isOwner(player)){
+            player.sendMessage(Text.translatable(IdUtil.error("not.delete.room"), this.getName()));
+            return;
+        }
 
+        joinUserList.forEach(playerEntity -> ServerPlayNetworking.send(playerEntity, new RoomDeletePayload(player.getName().getString())));
+        MusicRoomCommand.musicRoomList.remove(this);
     }
 
     @Override
     public void join(ServerPlayerEntity player) {
+        for (IMusicRoom iMusicRoom : MusicRoomCommand.musicRoomList) {
+            if (!iMusicRoom.inJoinRoom(player)){
+                continue;
+            }
+
+            player.sendMessage(Text.translatable(IdUtil.error("in.join.room")));
+            return;
+        }
+
         joinUserList.forEach(playerEntity -> playerEntity.sendMessage(Text.translatable(IdUtil.info("play.join.room"), player.getName(), this.getName()), false));
 
         joinUserList.add(player);
+        newJoinUserList.add(player);
         ServerPlayNetworking.send(player, new JoinRoomPayload(this.toNbtCompound()));
     }
 
     @Override
     public void exit(ServerPlayerEntity player) {
         this.joinUserList.remove(player);
+        if (newJoinUserList.contains(player)){
+            this.newJoinUserList.remove(player);
+        }
+
         joinUserList.forEach(playerEntity -> playerEntity.sendMessage(Text.translatable(IdUtil.info("play.exit.room"), player.getName(), this.getName()), false));
     }
 
@@ -125,7 +148,7 @@ public class MusicRoom implements IMusicRoom{
 
     @Override
     public void switchMusic(ServerPlayerEntity player) {
-        if (!player.getUuid().equals(this.owner.getUuid())){
+        if (!this.isOwner(player)){
             player.sendMessage(Text.translatable(IdUtil.error("not.switch.music"), this.getName()));
             return;
         }
@@ -156,17 +179,23 @@ public class MusicRoom implements IMusicRoom{
     public boolean isAllClientPlayEnd(){
         this.clientPlayEndCount ++;
 
-        if (this.clientPlayEndCount != this.joinUserList.size()){
+        if (this.clientPlayEndCount < this.joinUserList.size() - this.newJoinUserList.size()){
             return false;
         }
 
         this.clientPlayEndCount = 0;
+        this.newJoinUserList.clear();
         return true;
     }
 
     @Override
     public boolean inJoinRoom(ServerPlayerEntity player) {
         return this.joinUserList.contains(player);
+    }
+
+    @Override
+    public boolean isOwner(ServerPlayerEntity player) {
+        return player.getUuid().equals(this.owner.getUuid());
     }
 
     public NbtCompound toNbtCompound(){

@@ -6,10 +6,7 @@ import fengliu.cloudmusic.util.TextClickItem;
 import fengliu.cloudmusic.util.page.Page;
 import fengliu.cloudmusicroom.client.config.Configs;
 import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
-import fengliu.cloudmusicroom.networking.packets.payload.JoinRoomPayload;
-import fengliu.cloudmusicroom.networking.packets.payload.RoomListPayload;
-import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayMusicPayload;
-import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayingListPayload;
+import fengliu.cloudmusicroom.networking.packets.payload.*;
 import fengliu.cloudmusicroom.networking.packets.payload.client.RoomExitPayload;
 import fengliu.cloudmusicroom.room.MusicInfo;
 import fengliu.cloudmusicroom.room.MusicRoom;
@@ -91,7 +88,7 @@ public class MusicRoomClient {
     /**
      * 房间开始播放
      */
-    public static void RoomPlayMusic(RoomPlayMusicPayload payload, ClientPlayNetworking.Context context) {
+    public static void roomPlayMusic(RoomPlayMusicPayload payload, ClientPlayNetworking.Context context) {
         inUpdateMusic = true;
         if (payload.unoccupied()){
             context.player().sendMessage(Text.translatable(IdUtil.info("room.play.unoccupied")), false);
@@ -110,7 +107,7 @@ public class MusicRoomClient {
     /**
      * 显示房间列表
      */
-    public static void RoomList(RoomListPayload payload, ClientPlayNetworking.Context context) {
+    public static void roomList(RoomListPayload payload, ClientPlayNetworking.Context context) {
         NbtList nbtList = (NbtList) payload.musicRoomList();
         if (nbtList.isEmpty()){
             context.player().sendMessage(Text.translatable(IdUtil.info("not.music.room")), false);
@@ -121,17 +118,17 @@ public class MusicRoomClient {
             @Override
             protected TextClickItem putPageItem(Object item) {
                 NbtCompound musicRoomInfoNbt = (NbtCompound) item;
-                String roomName = musicRoomInfoNbt.getString(MusicRoom.ROOM_NAME_KEY);
+                long roomId = musicRoomInfoNbt.getLong(MusicRoom.ROOM_ID_KEY);
                 return new TextClickItem(Text.literal("§b%s - %s§r§7%s - id：%s".formatted(
-                        roomName,
+                        musicRoomInfoNbt.getString(MusicRoom.ROOM_NAME_KEY),
                         musicRoomInfoNbt.getString(MusicRoom.ROOM_OWNER_NAME_KEY),
                         MusicInfo.fromNbtCompound(musicRoomInfoNbt.getCompound(MusicRoom.ROOM_PLAYING_MUSIC_KEY)) == null ? Text.translatable(IdUtil.info("room.unoccupied")).getString(): "",
-                        musicRoomInfoNbt.getLong(MusicRoom.ROOM_ID_KEY))),
-                        "/cloudmusic-room join \"%s\"".formatted(roomName));
+                        roomId)),
+                        "/cloudmusic-room join %s".formatted(roomId));
             }
         };
 
-        page.setInfoText(Text.translatable(IdUtil.info("show.room.list")));
+        page.setInfoText(Text.translatable(IdUtil.info("page.show.room.list")));
         MusicCommand.setPage(page);
         page.look();
     }
@@ -158,8 +155,22 @@ public class MusicRoomClient {
             }
         };
 
-        page.setInfoText(Text.translatable(IdUtil.info("show.room.playing.list"), MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY)));
+        page.setInfoText(Text.translatable(IdUtil.info("page.show.room.playing.list"), MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY)));
         MusicCommand.setPage(page);
         page.look();
+    }
+
+    /**
+     * 所在房间被删除
+     */
+    public static void roomDelete(RoomDeletePayload payload, ClientPlayNetworking.Context context) {
+        context.player().sendMessage(Text.translatable(IdUtil.info("room.delete"),
+                MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY), payload.deletePlayerName()), false);
+
+        MusicRoomClient.inMusicRoom = false;
+        MusicRoomClient.roomInfo = null;
+        MusicRoomClient.inJoinRoomOldPlayer = false;
+        MusicRoomClient.inUpdateMusic = false;
+        MusicCommandMixin.resetPlayer(new ArrayList<>());
     }
 }

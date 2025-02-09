@@ -16,7 +16,7 @@ public interface IMusicRoom {
     /**
      * 删除房间
      */
-    void delete();
+    void delete(ServerPlayerEntity player);
 
     /**
      * 加入房间
@@ -60,4 +60,11 @@ public interface IMusicRoom {
      * @return true 玩家在房间
      */
     boolean inJoinRoom(ServerPlayerEntity player);
+
+    /**
+     * 判断用户是房间否为房间创建者
+     * @param player 玩家
+     * @return true 玩家是房间创建者
+     */
+    boolean isOwner(ServerPlayerEntity player);
 }
