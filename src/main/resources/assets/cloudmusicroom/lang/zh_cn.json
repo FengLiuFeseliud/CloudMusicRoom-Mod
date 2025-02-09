@@ -14,12 +14,15 @@
   "cloudmusicroom.info.room.play.unoccupied": "房间播放空闲了...",
   "cloudmusicroom.info.add.music.player.name": "点歌人：%s",
   "cloudmusicroom.info.add.music.time": "点歌时间：%s",
+  "cloudmusicroom.info.switch.music": "%s 切歌 %s",
+  "cloudmusicroom.info.room.playing": "房间 %s 播放 %s, 点歌人：%s",
   "cloudmusicroom.option.add.music": "[点歌]",
   "cloudmusicroom.option.add.music.show": "向所在房间点歌",
   "cloudmusicroom.error.sql.run.error": "",
   "cloudmusicroom.info.sql.not.table.": "",
   "cloudmusicroom.error.sql.exist.table.": "",
   "cloudmusicroom.error.not.join.room.add.music": "你还没进入房间怎么能点歌?",
+  "cloudmusicroom.error.not.switch.music": "你不能切 %s 房间的歌",
   "cloudmusic.config.join.room.exit.player": "加入房间后退出播放 | join.room.exit.player",
   "cloudmusic.config.join.room.exit.player.comment": "加入房间后房间空闲一样自动退出当前播放"
 }

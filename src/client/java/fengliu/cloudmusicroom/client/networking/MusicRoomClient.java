@@ -36,6 +36,7 @@ public class MusicRoomClient {
      */
     public static boolean inJoinRoomOldPlayer = false;
     public static boolean inUpdateMusic = false;
+    public static boolean inNotNext = false;
 
     public static boolean isInMusicRoom(){
         return MusicRoomClient.inMusicRoom;
@@ -84,6 +85,7 @@ public class MusicRoomClient {
         context.player().sendMessage(Text.translatable(IdUtil.info("join.room.playing"), payload.getRoomName(), playingMusic.getName()), false);
         MusicCommandMixin.resetPlayer(playingMusic);
         MusicCommand.getPlayer().start();
+        MusicRoomClient.inNotNext = true;
     }
 
     /**
@@ -97,9 +99,12 @@ public class MusicRoomClient {
             return;
         }
 
+        context.player().sendMessage(Text.translatable(IdUtil.info("room.playing"), MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY),
+                payload.musicInfo().getString(MusicInfo.MUSIC_NAME_KEY), payload.musicInfo().getString(MusicInfo.ADD_MUSIC_PLAYER_NAME_KEY)), false);
         IMusic playingMusic = MusicCommandMixin.getMusic163().music(payload.getPlayingMusicInfo().musicId());
         MusicCommandMixin.resetPlayer(playingMusic);
         MusicCommand.getPlayer().start();
+        MusicRoomClient.inNotNext = true;
     }
 
     /**

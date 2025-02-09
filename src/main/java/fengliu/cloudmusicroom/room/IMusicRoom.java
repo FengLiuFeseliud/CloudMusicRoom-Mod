@@ -41,7 +41,7 @@ public interface IMusicRoom {
     /**
      * 切歌
      */
-    void switchMusic();
+    void switchMusic(ServerPlayerEntity player);
 
     /**
      * 点歌

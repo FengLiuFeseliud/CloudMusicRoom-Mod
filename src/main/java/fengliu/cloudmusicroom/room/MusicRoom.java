@@ -124,7 +124,14 @@ public class MusicRoom implements IMusicRoom{
     }
 
     @Override
-    public void switchMusic() {
+    public void switchMusic(ServerPlayerEntity player) {
+        if (!player.getUuid().equals(this.owner.getUuid())){
+            player.sendMessage(Text.translatable(IdUtil.error("not.switch.music"), this.getName()));
+            return;
+        }
+
+        this.joinUserList.forEach(joinPlayer -> joinPlayer.sendMessage(
+                Text.translatable(IdUtil.info("switch.music"), this.owner.getName().getString(), this.musicQueue.getPlayingMusicInfo().musicName())));
         this.nextMusic();
     }
 

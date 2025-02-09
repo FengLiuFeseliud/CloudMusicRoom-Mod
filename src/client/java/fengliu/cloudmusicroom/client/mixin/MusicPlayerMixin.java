@@ -12,10 +12,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 
+/**
+ * 修改 MusicPlayer 以兼容房间内使用
+ */
 @Mixin(value = MusicPlayer.class, remap = false)
 public class MusicPlayerMixin {
 
     @Unique private boolean inUpDateNoPlay = false;
+    @Unique private boolean inNotNext = false;
 
     /**
      * 客户端完成播放后向服务端发送更新包
@@ -33,6 +37,11 @@ public class MusicPlayerMixin {
 
         if (MusicRoomClient.inJoinRoomOldPlayer){
             MusicRoomClient.inJoinRoomOldPlayer = false;
+            return;
+        }
+
+        if (this.inNotNext){
+            this.inNotNext = false;
             return;
         }
 
@@ -58,6 +67,18 @@ public class MusicPlayerMixin {
 
         this.inUpDateNoPlay = false;
         ci.cancel();
+    }
+
+    /**
+     * 拦截 next 发送更新包
+     */
+    @Inject(method = "next", at = @At("HEAD"))
+    public void switchMusic(CallbackInfo ci){
+        if (!MusicRoomClient.isInMusicRoom()){
+            return;
+        }
+
+        this.inNotNext = true;
     }
 
     /**

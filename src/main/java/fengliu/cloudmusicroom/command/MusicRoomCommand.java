@@ -39,6 +39,7 @@ public class MusicRoomCommand {
         LiteralArgumentBuilder<ServerCommandSource> List = literal("list");
         LiteralArgumentBuilder<ServerCommandSource> Join = literal("join");
         LiteralArgumentBuilder<ServerCommandSource> Queue = literal("queue");
+        LiteralArgumentBuilder<ServerCommandSource> Switch = literal("switch");
 
         CloudMusicRoom.then(Create.then(argument("name",
                 StringArgumentType.string()).executes(context -> {
@@ -74,7 +75,15 @@ public class MusicRoomCommand {
         }));
 
         CommandRegistrationCallback.EVENT.register(((commandDispatcher, commandRegistryAccess, registrationEnvironment) -> {
-            commandDispatcher.register(CloudMusicRoom);
+            commandDispatcher.register(CloudMusicRoom.then(Switch.executes(commandContext -> {
+                musicRoomList.forEach(iMusicRoom -> {
+                    if (!iMusicRoom.inJoinRoom(commandContext.getSource().getPlayer())){
+                        return;
+                    }
+                    iMusicRoom.switchMusic(commandContext.getSource().getPlayer());
+                });
+                return Command.SINGLE_SUCCESS;
+            })));
         }));
     }
 }

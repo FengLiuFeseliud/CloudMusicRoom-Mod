@@ -18,7 +18,7 @@ public class MusicRoomServer {
      */
     public static void roomMusicPlayEnd(RoomMusicPlayEndPayload payload, ServerPlayNetworking.Context context) {
         MusicRoomCommand.musicRoomList.forEach(musicRoom -> {
-            if (musicRoom.getId() != payload.roomId() || musicRoom.isAllClientPlayEnd()){
+            if (musicRoom.getId() != payload.roomId() || !musicRoom.isAllClientPlayEnd()){
                 return;
             }
 
