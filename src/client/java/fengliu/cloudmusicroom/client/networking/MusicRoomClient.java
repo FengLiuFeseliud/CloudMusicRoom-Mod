@@ -6,10 +6,10 @@ import fengliu.cloudmusic.util.TextClickItem;
 import fengliu.cloudmusic.util.page.Page;
 import fengliu.cloudmusicroom.client.config.Configs;
 import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
+import fengliu.cloudmusicroom.client.room.ClientMusicRoom;
 import fengliu.cloudmusicroom.networking.packets.payload.*;
-import fengliu.cloudmusicroom.networking.packets.payload.client.RoomExitPayload;
 import fengliu.cloudmusicroom.room.MusicInfo;
-import fengliu.cloudmusicroom.room.MusicRoom;
+import fengliu.cloudmusicroom.room.MusicQueue;
 import fengliu.cloudmusicroom.utils.IdUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -25,8 +25,7 @@ import java.util.Date;
  * S2C 客户端处理
  */
 public class MusicRoomClient {
-    private static boolean inMusicRoom = false;
-    private static NbtCompound roomInfo = null;
+    public static ClientMusicRoom musicRoom = null;
 
     /**
      * 防止播放时加入房间时发送更新包
@@ -35,42 +34,24 @@ public class MusicRoomClient {
     public static boolean inUpdateMusic = false;
     public static boolean inNotNext = false;
 
-    public static boolean isInMusicRoom(){
-        return MusicRoomClient.inMusicRoom;
-    }
-
-    public static NbtCompound getRoomInfo(){
-        return MusicRoomClient.roomInfo;
-    }
-
-    public static void exitRoom(){
-        if (MinecraftClient.getInstance().player != null) {
-            MinecraftClient.getInstance().player.sendMessage(Text.translatable(IdUtil.info("exit.room"),
-                    MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY)), false);
-            ClientPlayNetworking.send(new RoomExitPayload(MusicRoomClient.getRoomInfo().getLong(MusicRoom.ROOM_ID_KEY)));
-        }
-        MusicRoomClient.inMusicRoom = false;
-        MusicRoomClient.roomInfo = null;
-        MusicRoomClient.inJoinRoomOldPlayer = false;
-        MusicRoomClient.inUpdateMusic = false;
+    public static boolean inMusicRoom(){
+        return MusicRoomClient.musicRoom != null;
     }
 
     /**
      * 成功加入房间
      */
     public static void joinRoom(JoinRoomPayload payload, ClientPlayNetworking.Context context){
-        MusicRoomClient.inMusicRoom = true;
         MusicRoomClient.inUpdateMusic = true;
-        MusicRoomClient.roomInfo = payload.roomInfoNbt();
-        context.player().sendMessage(Text.translatable(IdUtil.info("join.room"), payload.getRoomName()), false);
+        MusicRoomClient.musicRoom = new ClientMusicRoom(payload.roomInfoNbt());
+        context.player().sendMessage(Text.translatable(IdUtil.info("join.room"), musicRoom.getName()), false);
 
         if (MusicCommand.getPlayer().isPlaying()){
             MusicRoomClient.inJoinRoomOldPlayer = true;
         }
 
-        MusicInfo musicInfo = payload.getPlayingMusicInfo();
-        if (musicInfo == null){
-            context.player().sendMessage(Text.translatable(IdUtil.info("join.room.not.playing"), payload.getRoomName()), false);
+        if (musicRoom.getQueue().isUnoccupied()){
+            context.player().sendMessage(Text.translatable(IdUtil.info("join.room.not.playing"), musicRoom.getName()), false);
             if (!Configs.PLAY.JOIN_ROOM_EXIT_PLAYER.getBooleanValue()){
                 return;
             }
@@ -78,8 +59,8 @@ public class MusicRoomClient {
             return;
         }
 
-        IMusic playingMusic = MusicCommandMixin.getMusic163().music(musicInfo.musicId());
-        context.player().sendMessage(Text.translatable(IdUtil.info("join.room.playing"), payload.getRoomName(), playingMusic.getName()), false);
+        IMusic playingMusic = MusicCommandMixin.getMusic163().music(musicRoom.getQueue().getPlayingMusicInfo().musicId());
+        context.player().sendMessage(Text.translatable(IdUtil.info("join.room.playing"), musicRoom.getName(), playingMusic.getName()), false);
         MusicCommandMixin.resetPlayer(playingMusic);
         MusicCommand.getPlayer().start();
         MusicRoomClient.inNotNext = true;
@@ -90,15 +71,20 @@ public class MusicRoomClient {
      */
     public static void roomPlayMusic(RoomPlayMusicPayload payload, ClientPlayNetworking.Context context) {
         inUpdateMusic = true;
+        MusicQueue queue = musicRoom.getQueue();
+
         if (payload.unoccupied()){
+            queue.resetPlaying(null);
             context.player().sendMessage(Text.translatable(IdUtil.info("room.play.unoccupied")), false);
             MusicCommandMixin.resetPlayer(new ArrayList<>());
             return;
         }
 
-        context.player().sendMessage(Text.translatable(IdUtil.info("room.playing"), MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY),
-                payload.musicInfo().getString(MusicInfo.MUSIC_NAME_KEY), payload.musicInfo().getString(MusicInfo.ADD_MUSIC_PLAYER_NAME_KEY)), false);
-        IMusic playingMusic = MusicCommandMixin.getMusic163().music(payload.getPlayingMusicInfo().musicId());
+        queue.fromNbt(payload.musicInfo());
+        MusicInfo musicInfo = queue.getPlayingMusicInfo();
+
+        context.player().sendMessage(Text.translatable(IdUtil.info("room.playing"), musicRoom.getName(), musicInfo.musicName(), musicInfo.addMusicPlayerName()), false);
+        IMusic playingMusic = MusicCommandMixin.getMusic163().music(musicInfo.musicId());
         MusicCommandMixin.resetPlayer(playingMusic);
         MusicCommand.getPlayer().start();
         MusicRoomClient.inNotNext = true;
@@ -117,14 +103,13 @@ public class MusicRoomClient {
         Page page = new Page(nbtList) {
             @Override
             protected TextClickItem putPageItem(Object item) {
-                NbtCompound musicRoomInfoNbt = (NbtCompound) item;
-                long roomId = musicRoomInfoNbt.getLong(MusicRoom.ROOM_ID_KEY);
+                ClientMusicRoom clientMusicRoom = new ClientMusicRoom((NbtCompound) item);
                 return new TextClickItem(Text.literal("§b%s - %s§r§7%s - id：%s".formatted(
-                        musicRoomInfoNbt.getString(MusicRoom.ROOM_NAME_KEY),
-                        musicRoomInfoNbt.getString(MusicRoom.ROOM_OWNER_NAME_KEY),
-                        MusicInfo.fromNbtCompound(musicRoomInfoNbt.getCompound(MusicRoom.ROOM_PLAYING_MUSIC_KEY)) == null ? Text.translatable(IdUtil.info("room.unoccupied")).getString(): "",
-                        roomId)),
-                        "/cloudmusic-room join %s".formatted(roomId));
+                        clientMusicRoom.getName(),
+                        clientMusicRoom.getOwnerName(),
+                        clientMusicRoom.getQueue().isUnoccupied() ? Text.translatable(IdUtil.info("room.unoccupied")).getString(): "",
+                        clientMusicRoom.getId())),
+                        "/cloudmusic-room join %s".formatted(clientMusicRoom.getId()));
             }
         };
 
@@ -137,16 +122,18 @@ public class MusicRoomClient {
      * 显示房间点歌列表
      */
     public static void roomPlayingList(RoomPlayingListPayload payload, ClientPlayNetworking.Context context) {
-        NbtList nbtList = (NbtList) payload.roomPlayingList();
-        if (nbtList.isEmpty()){
+        MusicQueue queue = musicRoom.getQueue();
+        queue.fromNbt((NbtList) payload.roomPlayingList());
+
+        if (queue.isUnoccupied()){
             context.player().sendMessage(Text.translatable(IdUtil.info("room.play.unoccupied")), false);
             return;
         }
 
-        Page page = new Page(nbtList) {
+        Page page = new Page(queue.getMusicList()) {
             @Override
             protected TextClickItem putPageItem(Object item) {
-                MusicInfo musicInfo = MusicInfo.fromNbtCompound((NbtCompound) item);
+                MusicInfo musicInfo = (MusicInfo) item;
                 return new TextClickItem(Text.literal("§b%s§r§7- %s - %s".formatted(
                         musicInfo.musicName(),
                         Text.translatable(IdUtil.info("add.music.player.name"), musicInfo.addMusicPlayerName()).getString(),
@@ -155,7 +142,7 @@ public class MusicRoomClient {
             }
         };
 
-        page.setInfoText(Text.translatable(IdUtil.info("page.show.room.playing.list"), MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY)));
+        page.setInfoText(Text.translatable(IdUtil.info("page.show.room.playing.list"), musicRoom.getName()));
         MusicCommand.setPage(page);
         page.look();
     }
@@ -164,13 +151,17 @@ public class MusicRoomClient {
      * 所在房间被删除
      */
     public static void roomDelete(RoomDeletePayload payload, ClientPlayNetworking.Context context) {
-        context.player().sendMessage(Text.translatable(IdUtil.info("room.delete"),
-                MusicRoomClient.roomInfo.getString(MusicRoom.ROOM_NAME_KEY), payload.deletePlayerName()), false);
-
-        MusicRoomClient.inMusicRoom = false;
-        MusicRoomClient.roomInfo = null;
+        musicRoom.delete(MinecraftClient.getInstance().getServer().getPlayerManager().getPlayer(payload.deletePlayerName()));
+        MusicRoomClient.musicRoom = null;
         MusicRoomClient.inJoinRoomOldPlayer = false;
         MusicRoomClient.inUpdateMusic = false;
         MusicCommandMixin.resetPlayer(new ArrayList<>());
+    }
+
+    /**
+     * 所在房间被更新
+     */
+    public static void roomUpdate(RoomUpdatePayload payload, ClientPlayNetworking.Context context) {
+        MusicRoomClient.musicRoom = new ClientMusicRoom(payload.roomInfoNbt());
     }
 }

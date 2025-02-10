@@ -8,6 +8,7 @@ import fengliu.cloudmusicroom.networking.packets.payload.RoomListPayload;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayingListPayload;
 import fengliu.cloudmusicroom.room.IMusicRoom;
 import fengliu.cloudmusicroom.room.MusicRoom;
+import fengliu.cloudmusicroom.room.ServerMusicRoom;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.player.PlayerEntity;
@@ -22,7 +23,7 @@ import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class MusicRoomCommand {
-    public static final List<IMusicRoom> musicRoomList = new ArrayList<>();
+    public static final List<ServerMusicRoom> musicRoomList = new ArrayList<>();
 
     private static void runRoom(long roomId, PlayerEntity player, Consumer<IMusicRoom> run){
         musicRoomList.forEach(iMusicRoom -> {
@@ -45,7 +46,7 @@ public class MusicRoomCommand {
 
         CloudMusicRoom.then(Create.then(argument("name",
                 StringArgumentType.string()).executes(context -> {
-                    musicRoomList.add(new MusicRoom(context.getSource().getServer(), StringArgumentType.getString(context, "name"), context.getSource().getPlayer()));
+                    musicRoomList.add(new ServerMusicRoom(context.getSource().getServer(), StringArgumentType.getString(context, "name"), context.getSource().getPlayer()));
                     return Command.SINGLE_SUCCESS;
         })));
 

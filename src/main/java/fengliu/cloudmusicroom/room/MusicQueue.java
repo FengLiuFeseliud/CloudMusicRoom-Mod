@@ -1,5 +1,6 @@
 package fengliu.cloudmusicroom.room;
 
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,8 +14,18 @@ public class MusicQueue {
     private MusicInfo playingMusicInfo = null;
     private final List<MusicInfo> musicList = new ArrayList<>();
 
+    public MusicQueue(){}
+
+    public MusicQueue(NbtList musicListNbt){
+
+    }
+
     public MusicInfo getPlayingMusicInfo(){
         return this.playingMusicInfo;
+    }
+
+    public List<MusicInfo> getMusicList(){
+        return this.musicList;
     }
 
     public boolean isUnoccupied(){
@@ -38,7 +49,7 @@ public class MusicQueue {
             return;
         }
 
-        this.playingMusicInfo = music;
+        this.resetPlaying(music);
     }
 
     public void deleteMusic(MusicInfo musicInfo){
@@ -53,6 +64,24 @@ public class MusicQueue {
 
         this.playingMusicInfo = musicList.getFirst();
         this.musicList.removeFirst();
+    }
+
+    public void resetPlaying(@Nullable MusicInfo music){
+        this.playingMusicInfo = music;
+    }
+
+    public void fromNbt(NbtList musicList){
+        this.musicList.clear();
+        musicList.forEach(musicInfo -> this.musicList.add(MusicInfo.fromNbtCompound((NbtCompound) musicInfo)));
+    }
+
+    public void fromNbt(NbtCompound musicInfoNbt){
+        this.playingMusicInfo = MusicInfo.fromNbtCompound(musicInfoNbt);
+    }
+
+    public void fromNbt(NbtCompound musicInfoNbt, NbtList musicList){
+        this.fromNbt(musicInfoNbt);
+        this.fromNbt(musicList);
     }
 
     public NbtList toNbtList(){

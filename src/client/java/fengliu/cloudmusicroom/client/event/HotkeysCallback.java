@@ -4,14 +4,11 @@ package fengliu.cloudmusicroom.client.event;
 import fengliu.cloudmusicroom.client.config.ConfigGui;
 import fengliu.cloudmusicroom.client.config.Configs;
 import fengliu.cloudmusicroom.client.networking.MusicRoomClient;
-import fengliu.cloudmusicroom.networking.packets.payload.client.SwitchRoomMusicPayload;
-import fengliu.cloudmusicroom.room.MusicRoom;
 import fengliu.cloudmusicroom.utils.IdUtil;
 import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.hotkeys.IHotkeyCallback;
 import fi.dy.masa.malilib.hotkeys.IKeybind;
 import fi.dy.masa.malilib.hotkeys.KeyAction;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 
@@ -38,11 +35,12 @@ public class HotkeysCallback implements IHotkeyCallback {
         }
 
         if (key == Configs.HOTKEY.SWITCH_MUSIC.getKeybind() && action == KeyAction.PRESS){
-            if (MusicRoomClient.getRoomInfo() == null){
+            if (!MusicRoomClient.inMusicRoom()){
                 this.client.player.sendMessage(Text.translatable(IdUtil.error("not.join.room.switch.music")), false);
                 return true;
             }
-            ClientPlayNetworking.send(new SwitchRoomMusicPayload(MusicRoomClient.getRoomInfo().getLong(MusicRoom.ROOM_ID_KEY)));
+
+            MusicRoomClient.musicRoom.switchMusic(null);
             return true;
         }
 

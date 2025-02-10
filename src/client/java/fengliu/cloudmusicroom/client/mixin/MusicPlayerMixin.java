@@ -3,8 +3,8 @@ package fengliu.cloudmusicroom.client.mixin;
 import fengliu.cloudmusic.util.MusicPlayer;
 import fengliu.cloudmusicroom.client.networking.MusicRoomClient;
 import fengliu.cloudmusicroom.networking.packets.payload.client.RoomMusicPlayEndPayload;
-import fengliu.cloudmusicroom.room.MusicRoom;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -31,7 +31,7 @@ public class MusicPlayerMixin {
             )
     )
     public void playEndSendC2S(CallbackInfo ci){
-        if (!MusicRoomClient.isInMusicRoom()){
+        if (!MusicRoomClient.inMusicRoom()){
             return;
         }
 
@@ -46,7 +46,7 @@ public class MusicPlayerMixin {
         }
 
         this.inUpDateNoPlay = true;
-        ClientPlayNetworking.send(new RoomMusicPlayEndPayload(MusicRoomClient.getRoomInfo().getLong(MusicRoom.ROOM_ID_KEY)));
+        ClientPlayNetworking.send(new RoomMusicPlayEndPayload(MusicRoomClient.musicRoom.getId()));
     }
 
     /**
@@ -74,7 +74,7 @@ public class MusicPlayerMixin {
      */
     @Inject(method = "next", at = @At("HEAD"))
     public void switchMusic(CallbackInfo ci){
-        if (!MusicRoomClient.isInMusicRoom()){
+        if (!MusicRoomClient.inMusicRoom()){
             return;
         }
 
@@ -86,7 +86,7 @@ public class MusicPlayerMixin {
      */
     @Inject(method = "exit", at = @At("RETURN"))
     public void exitRoom(CallbackInfo ci){
-        if (!MusicRoomClient.isInMusicRoom()){
+        if (!MusicRoomClient.inMusicRoom()){
             return;
         }
 
@@ -95,6 +95,6 @@ public class MusicPlayerMixin {
             return;
         }
 
-        MusicRoomClient.exitRoom();
+        MusicRoomClient.musicRoom.exit(MinecraftClient.getInstance().player);
     }
 }

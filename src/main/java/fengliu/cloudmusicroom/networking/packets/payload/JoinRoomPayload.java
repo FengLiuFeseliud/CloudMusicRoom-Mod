@@ -19,10 +19,6 @@ public record JoinRoomPayload(NbtCompound roomInfoNbt) implements CustomPayload 
         return MusicInfo.fromNbtCompound(this.roomInfoNbt().getCompound(MusicRoom.ROOM_PLAYING_MUSIC_KEY));
     }
 
-    public String getRoomName(){
-        return this.roomInfoNbt().getString(MusicRoom.ROOM_NAME_KEY);
-    }
-
     @Override
     public Id<? extends CustomPayload> getId() {
         return ModS2CPacketsId.JOIN_ROOM;
