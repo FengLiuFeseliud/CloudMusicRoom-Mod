@@ -6,8 +6,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomListPayload;
 import fengliu.cloudmusicroom.networking.packets.payload.RoomPlayingListPayload;
-import fengliu.cloudmusicroom.room.IMusicRoom;
-import fengliu.cloudmusicroom.room.MusicRoom;
 import fengliu.cloudmusicroom.room.ServerMusicRoom;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -25,13 +23,13 @@ import static net.minecraft.server.command.CommandManager.literal;
 public class MusicRoomCommand {
     public static final List<ServerMusicRoom> musicRoomList = new ArrayList<>();
 
-    private static void runRoom(long roomId, PlayerEntity player, Consumer<IMusicRoom> run){
-        musicRoomList.forEach(iMusicRoom -> {
-            if (iMusicRoom.getId() != roomId){
+    private static void runRoom(long roomId, PlayerEntity player, Consumer<ServerMusicRoom> run){
+        musicRoomList.forEach(musicRoom -> {
+            if (musicRoom.getId() != roomId){
                 return;
             }
 
-            run.accept(iMusicRoom);
+            run.accept(musicRoom);
         });
     }
 
@@ -52,7 +50,7 @@ public class MusicRoomCommand {
 
         CloudMusicRoom.then(List.executes(context -> {
             NbtList musicRoomListNbt = new NbtList();
-            musicRoomList.forEach(musicRoom -> musicRoomListNbt.add(((MusicRoom) musicRoom).toNbtCompound()));
+            musicRoomList.forEach(musicRoom -> musicRoomListNbt.add(musicRoom.toNbtCompound()));
             ServerPlayNetworking.send(context.getSource().getPlayer(), new RoomListPayload(musicRoomListNbt));
             return Command.SINGLE_SUCCESS;
         }));
@@ -63,33 +61,33 @@ public class MusicRoomCommand {
             }
 
             runRoom(LongArgumentType.getLong(context, "roomId"), context.getSource().getPlayer(),
-                    iMusicRoom -> iMusicRoom.join(context.getSource().getPlayer()));
+                    musicRoom -> musicRoom.join(context.getSource().getPlayer()));
             return Command.SINGLE_SUCCESS;
         })));
 
         CloudMusicRoom.then(Queue.executes(commandContext -> {
-            musicRoomList.forEach(iMusicRoom -> {
-                if (!iMusicRoom.inJoinRoom(commandContext.getSource().getPlayer())){
+            musicRoomList.forEach(musicRoom -> {
+                if (!musicRoom.inJoinRoom(commandContext.getSource().getPlayer())){
                     return;
                 }
-                ServerPlayNetworking.send(commandContext.getSource().getPlayer(), new RoomPlayingListPayload(iMusicRoom.getQueue().toNbtList()));
+                ServerPlayNetworking.send(commandContext.getSource().getPlayer(), new RoomPlayingListPayload(musicRoom.getQueue().toNbtList()));
             });
             return Command.SINGLE_SUCCESS;
         }));
 
         CloudMusicRoom.then(Switch.executes(commandContext -> {
-               musicRoomList.forEach(iMusicRoom -> {
-                   if (!iMusicRoom.inJoinRoom(commandContext.getSource().getPlayer())) {
+               musicRoomList.forEach(musicRoom -> {
+                   if (!musicRoom.inJoinRoom(commandContext.getSource().getPlayer())) {
                        return;
                    }
-                   iMusicRoom.switchMusic(commandContext.getSource().getPlayer());
+                   musicRoom.switchMusic(commandContext.getSource().getPlayer());
                });
                return Command.SINGLE_SUCCESS;
         }));
 
         CloudMusicRoom.then(Delete.then(
                 argument("roomId", LongArgumentType.longArg()).executes(commandContext -> {
-                    runRoom(LongArgumentType.getLong(commandContext, "roomId"), commandContext.getSource().getPlayer(), iMusicRoom -> iMusicRoom.delete(commandContext.getSource().getPlayer()));
+                    runRoom(LongArgumentType.getLong(commandContext, "roomId"), commandContext.getSource().getPlayer(), musicRoom -> musicRoom.delete(commandContext.getSource().getPlayer()));
                     return Command.SINGLE_SUCCESS;
         })));
 

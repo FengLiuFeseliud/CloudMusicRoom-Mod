@@ -4,12 +4,14 @@ import fengliu.cloudmusic.command.MusicCommand;
 import fengliu.cloudmusic.music163.IMusic;
 import fengliu.cloudmusic.util.TextClickItem;
 import fengliu.cloudmusic.util.page.Page;
+import fengliu.cloudmusicroom.CloudMusicRoom;
 import fengliu.cloudmusicroom.client.config.Configs;
 import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
 import fengliu.cloudmusicroom.client.room.ClientMusicRoom;
 import fengliu.cloudmusicroom.networking.packets.payload.*;
 import fengliu.cloudmusicroom.room.MusicInfo;
 import fengliu.cloudmusicroom.room.MusicQueue;
+import fengliu.cloudmusicroom.room.PlaylistInfo;
 import fengliu.cloudmusicroom.utils.IdUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -20,6 +22,7 @@ import net.minecraft.text.Text;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.function.Consumer;
 
 /**
  * S2C 客户端处理
@@ -38,6 +41,37 @@ public class MusicRoomClient {
         return MusicRoomClient.musicRoom != null;
     }
 
+    private static void runThread(ClientPlayNetworking.Context context, Consumer<ClientPlayNetworking.Context> run) {
+        Thread commandThread = new Thread(() -> {
+            try {
+                run.accept(context);
+            } catch (Exception err) {
+                MinecraftClient.getInstance().player.sendMessage(Text.literal(err.getMessage()), false);
+            }
+
+        });
+        commandThread.setDaemon(true);
+        commandThread.setName("%s Thread".formatted(CloudMusicRoom.MOD_ID));
+        commandThread.start();
+    }
+
+    private static boolean tryPlayUnoccupiedPlaylist(ClientPlayNetworking.Context context){
+        if (!inMusicRoom() || !musicRoom.canPlayUnoccupiedPlaylist()){
+            return false;
+        }
+
+        MusicRoomClient.inUpdateMusic = true;
+        PlaylistInfo playlistInfo = musicRoom.getUnoccupiedPlaylist();
+        context.player().sendMessage(Text.translatable(IdUtil.info("play.unoccupied.playlist"), playlistInfo.playlistName()), false);
+        runThread(context, c -> {
+            MusicCommandMixin.resetPlayer(MusicCommandMixin.getMusic163().playlist(playlistInfo.playlistId()).getMusics());
+            MusicRoomClient.inJoinRoomOldPlayer = true;
+            MusicCommand.getPlayer().start();
+        });
+
+        return true;
+    }
+
     /**
      * 成功加入房间
      */
@@ -52,6 +86,10 @@ public class MusicRoomClient {
 
         if (musicRoom.getQueue().isUnoccupied()){
             context.player().sendMessage(Text.translatable(IdUtil.info("join.room.not.playing"), musicRoom.getName()), false);
+            if(tryPlayUnoccupiedPlaylist(context)){
+                return;
+            }
+
             if (!Configs.PLAY.JOIN_ROOM_EXIT_PLAYER.getBooleanValue()){
                 return;
             }
@@ -76,7 +114,14 @@ public class MusicRoomClient {
         if (payload.unoccupied()){
             queue.resetPlaying(null);
             context.player().sendMessage(Text.translatable(IdUtil.info("room.play.unoccupied")), false);
-            MusicCommandMixin.resetPlayer(new ArrayList<>());
+            if(!musicRoom.canPlayUnoccupiedPlaylist()){
+                MusicCommandMixin.resetPlayer(new ArrayList<>());
+                return;
+            }
+
+            if(tryPlayUnoccupiedPlaylist(context)){
+                return;
+            }
             return;
         }
 
@@ -162,6 +207,17 @@ public class MusicRoomClient {
      * 所在房间被更新
      */
     public static void roomUpdate(RoomUpdatePayload payload, ClientPlayNetworking.Context context) {
+        ClientMusicRoom oldMusicRoom = MusicRoomClient.musicRoom;
         MusicRoomClient.musicRoom = new ClientMusicRoom(payload.roomInfoNbt());
+
+        if (oldMusicRoom.getUnoccupiedPlaylist() != null && musicRoom.getUnoccupiedPlaylist() == null){
+            MusicRoomClient.inUpdateMusic = true;
+            MusicCommandMixin.resetPlayer(new ArrayList<>());
+        }
+
+        if ((oldMusicRoom.getUnoccupiedPlaylist() == null && musicRoom.getUnoccupiedPlaylist() != null) || (oldMusicRoom.getUnoccupiedPlaylist() != null &&  musicRoom.getUnoccupiedPlaylist() != null &&
+                oldMusicRoom.getUnoccupiedPlaylist().playlistId() != musicRoom.getUnoccupiedPlaylist().playlistId())){
+            tryPlayUnoccupiedPlaylist(context);
+        }
     }
 }

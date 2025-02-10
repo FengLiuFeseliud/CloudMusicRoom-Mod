@@ -63,6 +63,129 @@ public class ServerMusicRoom extends MusicRoom{
         });
     }
 
+    /**
+     * 加入房间
+     */
+    public void join(PlayerEntity player) {
+        for (IMusicRoom iMusicRoom : MusicRoomCommand.musicRoomList) {
+            if (!iMusicRoom.inJoinRoom(player)){
+                continue;
+            }
+
+            player.sendMessage(Text.translatable(IdUtil.error("in.join.room")), false);
+            return;
+        }
+
+        joinUserList.add(player);
+        newJoinUserList.add(player);
+        ServerPlayNetworking.send((ServerPlayerEntity) player, new JoinRoomPayload(this.toNbtCompound()));
+        joinUserList.forEach(playerEntity -> {
+            if (playerEntity.equals(player)){
+                return;
+            }
+            playerEntity.sendMessage(Text.translatable(IdUtil.info("play.join.room"), player.getName(), this.getName(), this.joinUserList.size()), false);
+        });
+    }
+
+    /**
+     * 向房间所有用户更新歌曲
+     */
+    public void updateMusic() {
+        joinUserList.forEach(player -> ServerPlayNetworking.send((ServerPlayerEntity) player,
+                new RoomPlayMusicPayload(this.musicQueue.isUnoccupied() ? new NbtCompound(): this.musicQueue.getPlayingMusicInfo().toNbtCompound(), this.musicQueue.isUnoccupied())));
+        this.switchVoteCount = 0;
+        this.switchVoteUserList.clear();
+    }
+
+    /**
+     * 点歌
+     */
+    public void addMusic(MusicInfo musicInfo, PlayerEntity addMusicPlayer) {
+        if (!this.joinUserList.contains(addMusicPlayer)){
+            addMusicPlayer.sendMessage(Text.translatable(IdUtil.error("not.join.room.add.music")), false);
+            return;
+        }
+
+        if (this.musicQueue.isUnoccupied()){
+            this.musicQueue.addMusic(musicInfo);
+            this.updateMusic();
+        } else {
+            this.musicQueue.addMusic(musicInfo);
+        }
+
+        joinUserList.forEach(player -> player.sendMessage(Text.translatable(IdUtil.info("room.add.music"), addMusicPlayer.getName(), musicInfo.musicName()), false));
+    }
+
+    /**
+     * 取消点歌
+     */
+    public void deleteMusic(long musicId, PlayerEntity player) {
+        MusicInfo musicInfo = this.musicQueue.getMusicInfo(musicId);
+        if (musicInfo == null){
+            player.sendMessage(Text.translatable(IdUtil.error("not.get.delete.room.music"), musicId), false);
+            return;
+        }
+
+        if (!player.getUuid().equals(musicInfo.addMusicPlayerUuid()) && !this.owner.getUuid().equals(player.getUuid())){
+            player.sendMessage(Text.translatable(IdUtil.error("not.delete.room.music"), musicInfo.musicName()), false);
+            return;
+        }
+
+        joinUserList.forEach(playerEntity -> playerEntity.sendMessage(
+                Text.translatable(IdUtil.info("delete.room.music"), player.getName(), this.getName(), musicInfo.musicName(), musicInfo.addMusicPlayerName()), false));
+        this.musicQueue.deleteMusic(musicInfo);
+    }
+
+    /**
+     * 下一首
+     */
+    public void nextMusic() {
+        this.musicQueue.nextMusic();
+        this.updateMusic();
+    }
+
+    /**
+     * 判断所有用户是否都播放完毕
+     * @return true 用户都播放完毕
+     */
+    public boolean isAllClientPlayEnd(){
+        this.clientPlayEndCount ++;
+
+        if (this.clientPlayEndCount < this.joinUserList.size() - this.newJoinUserList.size()){
+            return false;
+        }
+
+        this.clientPlayEndCount = 0;
+        this.newJoinUserList.clear();
+        return true;
+    }
+
+    /**
+     * 向房间所有用户更新房间信息
+     */
+    public void updateRoomInfo(Text updateInfo) {
+        joinUserList.forEach(player -> {
+            player.sendMessage(updateInfo, false);
+            ServerPlayNetworking.send((ServerPlayerEntity) player, new RoomUpdatePayload(this.toNbtCompound()));
+        });
+    }
+
+    public void setUnoccupiedPlaylist(PlaylistInfo playlistInfo, ServerPlayerEntity player){
+        if (!this.isOwner(player)){
+            player.sendMessage(Text.translatable(IdUtil.error("not.set.unoccupied.playlist"), this.getName()));
+            return;
+        }
+
+        if (playlistInfo.playlistId() == 0){
+            this.unoccupiedPlaylist = null;
+            this.updateRoomInfo(Text.translatable(IdUtil.info("set.null.unoccupied.playlist"), player.getName()));
+            return;
+        }
+
+        this.unoccupiedPlaylist = playlistInfo;
+        this.updateRoomInfo(Text.translatable(IdUtil.info("set.unoccupied.playlist"), player.getName(), playlistInfo.playlistName(), playlistInfo.playlistId()));
+    }
+
     @Override
     public void delete(PlayerEntity player) {
         if (!this.isOwner(player)){
@@ -75,50 +198,13 @@ public class ServerMusicRoom extends MusicRoom{
     }
 
     @Override
-    public void join(PlayerEntity player) {
-        for (IMusicRoom iMusicRoom : MusicRoomCommand.musicRoomList) {
-            if (!iMusicRoom.inJoinRoom(player)){
-                continue;
-            }
-
-            player.sendMessage(Text.translatable(IdUtil.error("in.join.room")), false);
-            return;
-        }
-
-        joinUserList.forEach(playerEntity -> playerEntity.sendMessage(Text.translatable(IdUtil.info("play.join.room"), player.getName(), this.getName()), false));
-
-        joinUserList.add(player);
-        newJoinUserList.add(player);
-        ServerPlayNetworking.send((ServerPlayerEntity) player, new JoinRoomPayload(this.toNbtCompound()));
-    }
-
-    @Override
     public void exit(PlayerEntity player) {
         this.joinUserList.remove(player);
         if (newJoinUserList.contains(player)){
             this.newJoinUserList.remove(player);
         }
 
-        joinUserList.forEach(playerEntity -> playerEntity.sendMessage(Text.translatable(IdUtil.info("play.exit.room"), player.getName(), this.getName()), false));
-    }
-
-    @Override
-    public void updateMusic() {
-        joinUserList.forEach(player -> ServerPlayNetworking.send((ServerPlayerEntity) player,
-                new RoomPlayMusicPayload(this.musicQueue.isUnoccupied() ? new NbtCompound(): this.musicQueue.getPlayingMusicInfo().toNbtCompound(), this.musicQueue.isUnoccupied())));
-        this.switchVoteCount = 0;
-        this.switchVoteUserList.clear();
-    }
-
-    @Override
-    public void updateRoomInfo() {
-        joinUserList.forEach(player -> ServerPlayNetworking.send((ServerPlayerEntity) player, new RoomUpdatePayload(this.toNbtCompound())));
-    }
-
-    @Override
-    public void nextMusic() {
-        this.musicQueue.nextMusic();
-        this.updateMusic();
+        joinUserList.forEach(playerEntity -> playerEntity.sendMessage(Text.translatable(IdUtil.info("play.exit.room"), player.getName(), this.getName(), this.joinUserList.size()), false));
     }
 
     /**
@@ -155,56 +241,5 @@ public class ServerMusicRoom extends MusicRoom{
         this.joinUserList.forEach(joinPlayer -> joinPlayer.sendMessage(
                 Text.translatable(IdUtil.info("switch.music"), player.getName().getString(), this.musicQueue.getPlayingMusicInfo().musicName()), false));
         this.nextMusic();
-    }
-
-    @Override
-    public void addMusic(MusicInfo musicInfo, PlayerEntity addMusicPlayer) {
-        if (!this.joinUserList.contains(addMusicPlayer)){
-            addMusicPlayer.sendMessage(Text.translatable(IdUtil.error("not.join.room.add.music")), false);
-            return;
-        }
-
-        if (this.musicQueue.isUnoccupied()){
-            this.musicQueue.addMusic(musicInfo);
-            this.updateMusic();
-        } else {
-            this.musicQueue.addMusic(musicInfo);
-        }
-
-        joinUserList.forEach(player -> player.sendMessage(Text.translatable(IdUtil.info("room.add.music"), addMusicPlayer.getName(), musicInfo.musicName()), false));
-    }
-
-    @Override
-    public void deleteMusic(long musicId, PlayerEntity player) {
-        MusicInfo musicInfo = this.musicQueue.getMusicInfo(musicId);
-        if (musicInfo == null){
-            player.sendMessage(Text.translatable(IdUtil.error("not.get.delete.room.music"), musicId), false);
-            return;
-        }
-
-        if (!player.getUuid().equals(musicInfo.addMusicPlayerUuid()) && !this.owner.getUuid().equals(player.getUuid())){
-            player.sendMessage(Text.translatable(IdUtil.error("not.delete.room.music"), musicInfo.musicName()), false);
-            return;
-        }
-
-        joinUserList.forEach(playerEntity -> playerEntity.sendMessage(
-                Text.translatable(IdUtil.info("delete.room.music"), player.getName(), this.getName(), musicInfo.musicName(), musicInfo.addMusicPlayerName()), false));
-        this.musicQueue.deleteMusic(musicInfo);
-    }
-
-    /**
-     * 判断所有用户是否都播放完毕
-     * @return true 用户都播放完毕
-     */
-    public boolean isAllClientPlayEnd(){
-        this.clientPlayEndCount ++;
-
-        if (this.clientPlayEndCount < this.joinUserList.size() - this.newJoinUserList.size()){
-            return false;
-        }
-
-        this.clientPlayEndCount = 0;
-        this.newJoinUserList.clear();
-        return true;
     }
 }

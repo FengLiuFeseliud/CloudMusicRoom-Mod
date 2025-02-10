@@ -6,13 +6,16 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import fengliu.cloudmusic.command.MusicCommand;
 import fengliu.cloudmusic.music163.data.Music;
+import fengliu.cloudmusic.music163.data.PlayList;
 import fengliu.cloudmusic.util.TextClickItem;
 import fengliu.cloudmusic.util.page.Page;
 import fengliu.cloudmusicroom.CloudMusicRoom;
 import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
 import fengliu.cloudmusicroom.networking.packets.payload.client.AddRoomMusicPayload;
 import fengliu.cloudmusicroom.networking.packets.payload.client.DeleteRoomPayload;
+import fengliu.cloudmusicroom.networking.packets.payload.client.SetRoomUnoccupiedPlaylistPayload;
 import fengliu.cloudmusicroom.room.MusicInfo;
+import fengliu.cloudmusicroom.room.PlaylistInfo;
 import fengliu.cloudmusicroom.utils.IdUtil;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -41,6 +44,9 @@ public class MusicRoomClientCommand {
             Text.translatable("cloudmusicroom.help.delete"),
             Text.translatable("cloudmusicroom.help.exit"),
             Text.translatable("cloudmusicroom.help.add"),
+            Text.translatable("cloudmusicroom.help.delete.music"),
+            Text.translatable("cloudmusicroom.help.unoccupiedPlaylist"),
+            Text.translatable("cloudmusicroom.help.unoccupiedPlaylist.clean"),
             Text.translatable("cloudmusicroom.help.cloudmusicroom")
     };
     private static final List<Text> helpsList = new ArrayList<>();
@@ -63,6 +69,7 @@ public class MusicRoomClientCommand {
         LiteralArgumentBuilder<FabricClientCommandSource> CloudMusicRoomClient = literal("cloudmusic-room-client");
         LiteralArgumentBuilder<FabricClientCommandSource> Add = literal("add");
         LiteralArgumentBuilder<FabricClientCommandSource> Delete = literal("delete");
+        LiteralArgumentBuilder<FabricClientCommandSource> UnoccupiedPlaylist = literal("unoccupied");
 
         Collections.addAll(helpsList, helps);
         CloudMusicRoomClient.executes(commandContext -> {
@@ -100,6 +107,30 @@ public class MusicRoomClientCommand {
                 argument("musicId", LongArgumentType.longArg()).executes(commandContext -> {
                     ClientPlayNetworking.send(new DeleteRoomPayload(LongArgumentType.getLong(commandContext, "roomId"),
                             LongArgumentType.getLong(commandContext, "musicId")));
+                    return Command.SINGLE_SUCCESS;
+                })
+        )));
+
+        CloudMusicRoomClient.then(UnoccupiedPlaylist.then(argument("roomId", LongArgumentType.longArg())
+                .then(argument("playlistId", LongArgumentType.longArg()).executes(commandContext -> {
+                    runCommand(commandContext, context -> {
+                        PlayList playList = MusicCommandMixin.getMusic163().playlist(LongArgumentType.getLong(context, "playlistId"));
+
+                        StringBuilder tags = new StringBuilder();
+                        playList.tags.forEach(tag -> tags.append(tag.getAsString()));
+
+                        ClientPlayNetworking.send(new SetRoomUnoccupiedPlaylistPayload(
+                                new PlaylistInfo(playList.id, playList.name, tags.toString()).toNbtCompound(),
+                                LongArgumentType.getLong(context, "roomId")));
+                    });
+                    return Command.SINGLE_SUCCESS;
+                }))
+        ));
+
+        CloudMusicRoomClient.then(UnoccupiedPlaylist.then(literal("clean").then(
+                argument("roomId", LongArgumentType.longArg()).executes(context -> {
+                    ClientPlayNetworking.send(new SetRoomUnoccupiedPlaylistPayload(PlaylistInfo.EMPTY.toNbtCompound(),
+                            LongArgumentType.getLong(context, "roomId")));
                     return Command.SINGLE_SUCCESS;
                 })
         )));

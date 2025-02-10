@@ -3,6 +3,7 @@ package fengliu.cloudmusicroom.networking.packets;
 import fengliu.cloudmusicroom.command.MusicRoomCommand;
 import fengliu.cloudmusicroom.networking.packets.payload.client.*;
 import fengliu.cloudmusicroom.room.MusicInfo;
+import fengliu.cloudmusicroom.room.PlaylistInfo;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 
@@ -72,6 +73,19 @@ public class MusicRoomServer {
                 return;
             }
             iMusicRoom.switchMusic(context.player());
+        });
+    }
+
+    /**
+     * 客户端设置空闲歌单
+     */
+    public static void setRoomUnoccupiedPlaylist(SetRoomUnoccupiedPlaylistPayload payload, ServerPlayNetworking.Context context) {
+        MusicRoomCommand.musicRoomList.forEach(musicRoom -> {
+            if (musicRoom.getId() != payload.roomId()){
+                return;
+            }
+
+            musicRoom.setUnoccupiedPlaylist(PlaylistInfo.fromNbtCompound(payload.playlistInfoNbt()), context.player());
         });
     }
 }

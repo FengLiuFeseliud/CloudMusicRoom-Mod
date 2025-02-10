@@ -2,6 +2,7 @@ package fengliu.cloudmusicroom.room;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ public abstract class MusicRoom implements IMusicRoom{
     public static final String ROOM_OWNER_NAME_KEY = "ownerName";
     public static final String ROOM_OWNER_UUID_KEY = "ownerUuid";
     public static final String ROOM_PLAYING_MUSIC_KEY = "roomPlayingMusic";
-    public static final String ROOM_UNOCCUPIED_PLAYING_PLAYLIST_ID_KEY = "unoccupiedPlayingPlaylistId";
+    public static final String ROOM_UNOCCUPIED_PLAYLIST_KEY = "unoccupiedPlaylist";
 
     protected long roomId = 0;
     protected final String name;
@@ -27,7 +28,7 @@ public abstract class MusicRoom implements IMusicRoom{
     protected long clientPlayEndCount = 0;
     protected long switchVoteCount = 0;
     protected final List<PlayerEntity> switchVoteUserList = new ArrayList<>();
-    protected long unoccupiedPlayingPlaylist = 0;
+    protected PlaylistInfo unoccupiedPlaylist = null;
 
 
     public MusicRoom(String roomName, PlayerEntity owner){
@@ -44,7 +45,14 @@ public abstract class MusicRoom implements IMusicRoom{
 
         this.ownerName = roomInfo.getString(ROOM_OWNER_NAME_KEY);
         this.ownerUuid = roomInfo.getUuid(ROOM_OWNER_UUID_KEY);
-        this.unoccupiedPlayingPlaylist = roomInfo.getLong(ROOM_UNOCCUPIED_PLAYING_PLAYLIST_ID_KEY);
+
+        if (roomInfo.contains(MusicRoom.ROOM_PLAYING_MUSIC_KEY, NbtElement.COMPOUND_TYPE)){
+            this.musicQueue.fromNbt((NbtCompound) roomInfo.get(MusicRoom.ROOM_PLAYING_MUSIC_KEY));
+        }
+
+        if (roomInfo.contains(MusicRoom.ROOM_UNOCCUPIED_PLAYLIST_KEY, NbtElement.COMPOUND_TYPE)){
+            this.unoccupiedPlaylist = PlaylistInfo.fromNbtCompound(roomInfo.getCompound(ROOM_UNOCCUPIED_PLAYLIST_KEY));
+        }
     }
 
     @Override
@@ -63,6 +71,11 @@ public abstract class MusicRoom implements IMusicRoom{
     }
 
     @Override
+    public PlaylistInfo getUnoccupiedPlaylist() {
+        return this.unoccupiedPlaylist;
+    }
+
+    @Override
     public boolean inJoinRoom(PlayerEntity player) {
         return this.joinUserList.contains(player);
     }
@@ -70,6 +83,11 @@ public abstract class MusicRoom implements IMusicRoom{
     @Override
     public boolean isOwner(PlayerEntity player) {
         return player.getUuid().equals(this.owner.getUuid());
+    }
+
+    @Override
+    public boolean canPlayUnoccupiedPlaylist() {
+        return this.unoccupiedPlaylist != null && this.musicQueue.isUnoccupied();
     }
 
     public NbtCompound toNbtCompound(){
@@ -81,7 +99,10 @@ public abstract class MusicRoom implements IMusicRoom{
         if (!this.musicQueue.isUnoccupied()){
             musicRoomNbt.put(ROOM_PLAYING_MUSIC_KEY, this.musicQueue.getPlayingMusicInfo().toNbtCompound());
         }
-        musicRoomNbt.putLong(ROOM_UNOCCUPIED_PLAYING_PLAYLIST_ID_KEY, this.unoccupiedPlayingPlaylist);
+
+        if (this.canPlayUnoccupiedPlaylist()){
+            musicRoomNbt.put(ROOM_UNOCCUPIED_PLAYLIST_KEY, this.unoccupiedPlaylist.toNbtCompound());
+        }
         return musicRoomNbt;
     }
 }
