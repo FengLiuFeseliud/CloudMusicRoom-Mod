@@ -1,6 +1,7 @@
 package fengliu.cloudmusicroom.room;
 
 import net.minecraft.nbt.NbtList;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
  */
 public class MusicQueue {
     private MusicInfo playingMusicInfo = null;
-    private List<MusicInfo> musicList = new ArrayList<>();
+    private final List<MusicInfo> musicList = new ArrayList<>();
 
     public MusicInfo getPlayingMusicInfo(){
         return this.playingMusicInfo;
@@ -20,6 +21,17 @@ public class MusicQueue {
         return musicList.isEmpty() && playingMusicInfo == null;
     }
 
+    public @Nullable MusicInfo getMusicInfo(long musicId){
+        for (MusicInfo musicInfo : musicList) {
+            if (musicInfo.musicId() != musicId){
+                continue;
+            }
+
+            return musicInfo;
+        }
+        return null;
+    }
+
     public void addMusic(MusicInfo music){
         if (!this.isUnoccupied()){
             this.musicList.add(music);
@@ -27,6 +39,10 @@ public class MusicQueue {
         }
 
         this.playingMusicInfo = music;
+    }
+
+    public void deleteMusic(MusicInfo musicInfo){
+        this.musicList.remove(musicInfo);
     }
 
     public void nextMusic(){

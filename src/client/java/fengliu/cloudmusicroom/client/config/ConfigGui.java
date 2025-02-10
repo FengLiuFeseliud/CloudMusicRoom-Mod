@@ -20,10 +20,12 @@ public class ConfigGui extends GuiConfigsBase {
         List<? extends IConfigBase> configs;
         ConfigGuiTab tab = TabManager.getConfigGuiTab();
 
-        if (tab == ConfigGui.ConfigGuiTab.ALL) {
+        if (tab == ConfigGuiTab.ALL) {
             configs = Configs.ALL.OPTIONS;
         } else if (tab == ConfigGuiTab.PLAY) {
             configs = Configs.PLAY.OPTIONS;
+        } else if (tab == ConfigGuiTab.HOTKEY) {
+            configs = Configs.HOTKEY.HOTKEY_LIST;
         } else {
             return Collections.emptyList();
         }
@@ -86,7 +88,8 @@ public class ConfigGui extends GuiConfigsBase {
 
     public enum ConfigGuiTab {
         ALL(IdUtil.getConfigTag("all")),
-        PLAY(IdUtil.getConfigTag("play"));
+        PLAY(IdUtil.getConfigTag("play")),
+        HOTKEY(IdUtil.getConfigTag("hotkey"));
 
         private final String translationKey;
 

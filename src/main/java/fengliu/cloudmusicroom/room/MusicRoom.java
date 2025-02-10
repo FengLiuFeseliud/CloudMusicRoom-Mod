@@ -34,6 +34,8 @@ public class MusicRoom implements IMusicRoom{
     private MusicQueue musicQueue = new MusicQueue();
     private long playMusicPlaylistId = 0;
     private long clientPlayEndCount = 0;
+    private long switchVoteCount = 0;
+    private final List<ServerPlayerEntity> switchVoteUserList = new ArrayList<>();
 
     public final MinecraftServer server;
     public final SqlConnection connection = new SqlConnection() {
@@ -138,6 +140,8 @@ public class MusicRoom implements IMusicRoom{
     public void updateMusic() {
         joinUserList.forEach(player -> ServerPlayNetworking.send(player,
                 new RoomPlayMusicPayload(this.musicQueue.isUnoccupied() ? new NbtCompound(): this.musicQueue.getPlayingMusicInfo().toNbtCompound(), this.musicQueue.isUnoccupied())));
+        this.switchVoteCount = 0;
+        this.switchVoteUserList.clear();
     }
 
     @Override
@@ -146,15 +150,39 @@ public class MusicRoom implements IMusicRoom{
         this.updateMusic();
     }
 
+    /**
+     * 切歌投票
+     * @param player 玩家
+     * @return 是否成功切歌
+     */
+    public boolean switchVote(ServerPlayerEntity player){
+        if (switchVoteUserList.contains(player)){
+            player.sendMessage(Text.translatable(IdUtil.error("not.add.switch.vote")));
+            return false;
+        }
+
+        switchVoteUserList.add(player);
+        this.switchVoteCount ++;
+        this.joinUserList.forEach(joinPlayer -> joinPlayer.sendMessage(
+                Text.translatable(IdUtil.info("switch.vote.music"), this.musicQueue.getPlayingMusicInfo().musicName(),
+                        this.switchVoteCount, this.joinUserList.size(), player.getName().getString())));
+        return this.switchVoteCount > this.joinUserList.size() / 2;
+    }
+
     @Override
     public void switchMusic(ServerPlayerEntity player) {
-        if (!this.isOwner(player)){
-            player.sendMessage(Text.translatable(IdUtil.error("not.switch.music"), this.getName()));
+        if (this.musicQueue.isUnoccupied()){
+            player.sendMessage(Text.translatable(IdUtil.error("not.switch.music.unoccupied")));
+            return;
+        }
+
+        if (!this.isOwner(player) && !this.switchVote(player)){
+            //   player.sendMessage(Text.translatable(IdUtil.error("not.switch.music"), this.getName()));
             return;
         }
 
         this.joinUserList.forEach(joinPlayer -> joinPlayer.sendMessage(
-                Text.translatable(IdUtil.info("switch.music"), this.owner.getName().getString(), this.musicQueue.getPlayingMusicInfo().musicName())));
+                Text.translatable(IdUtil.info("switch.music"), player.getName().getString(), this.musicQueue.getPlayingMusicInfo().musicName())));
         this.nextMusic();
     }
 
@@ -173,6 +201,24 @@ public class MusicRoom implements IMusicRoom{
         }
 
         joinUserList.forEach(player -> player.sendMessage(Text.translatable(IdUtil.info("room.add.music"), addMusicPlayer.getName(), musicInfo.musicName())));
+    }
+
+    @Override
+    public void deleteMusic(long musicId, ServerPlayerEntity player) {
+        MusicInfo musicInfo = this.musicQueue.getMusicInfo(musicId);
+        if (musicInfo == null){
+            player.sendMessage(Text.translatable(IdUtil.error("not.get.delete.room.music"), musicId));
+            return;
+        }
+
+        if (!player.getUuid().equals(musicInfo.addMusicPlayerUuid()) && !this.owner.getUuid().equals(player.getUuid())){
+            player.sendMessage(Text.translatable(IdUtil.error("not.delete.room.music"), musicInfo.musicName()));
+            return;
+        }
+
+        joinUserList.forEach(playerEntity -> playerEntity.sendMessage(
+                Text.translatable(IdUtil.info("delete.room.music"), player.getName(), this.getName(), musicInfo.musicName(), musicInfo.addMusicPlayerName())));
+        this.musicQueue.deleteMusic(musicInfo);
     }
 
     @Override

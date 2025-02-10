@@ -11,6 +11,7 @@ import fengliu.cloudmusic.util.page.Page;
 import fengliu.cloudmusicroom.CloudMusicRoom;
 import fengliu.cloudmusicroom.client.mixin.MusicCommandMixin;
 import fengliu.cloudmusicroom.networking.packets.payload.client.AddRoomMusicPayload;
+import fengliu.cloudmusicroom.networking.packets.payload.client.DeleteRoomPayload;
 import fengliu.cloudmusicroom.room.MusicInfo;
 import fengliu.cloudmusicroom.utils.IdUtil;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -61,6 +62,7 @@ public class MusicRoomClientCommand {
     public static void registerAll() {
         LiteralArgumentBuilder<FabricClientCommandSource> CloudMusicRoomClient = literal("cloudmusic-room-client");
         LiteralArgumentBuilder<FabricClientCommandSource> Add = literal("add");
+        LiteralArgumentBuilder<FabricClientCommandSource> Delete = literal("delete");
 
         Collections.addAll(helpsList, helps);
         CloudMusicRoomClient.executes(commandContext -> {
@@ -93,6 +95,14 @@ public class MusicRoomClientCommand {
                     });
                     return Command.SINGLE_SUCCESS;
                 }))));
+
+        CloudMusicRoomClient.then(Delete.then(argument("roomId", LongArgumentType.longArg()).then(
+                argument("musicId", LongArgumentType.longArg()).executes(commandContext -> {
+                    ClientPlayNetworking.send(new DeleteRoomPayload(LongArgumentType.getLong(commandContext, "roomId"),
+                            LongArgumentType.getLong(commandContext, "musicId")));
+                    return Command.SINGLE_SUCCESS;
+                })
+        )));
 
         ClientCommandRegistrationCallback.EVENT.register((commandDispatcher, commandRegistryAccess) -> {
            commandDispatcher.register(CloudMusicRoomClient);

@@ -49,6 +49,11 @@ public interface IMusicRoom {
     void addMusic(MusicInfo musicInfo, ServerPlayerEntity player);
 
     /**
+     * 取消点歌
+     */
+    void deleteMusic(long musicId, ServerPlayerEntity player);
+
+    /**
      * 判断所有用户是否都播放完毕
      * @return true 用户都播放完毕
      */
